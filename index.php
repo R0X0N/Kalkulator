@@ -1,29 +1,18 @@
 <?php
-// --- SEKCJA PHP ---
-// Ta część kodu wykonuje się na serwerze, tylko gdy formularz zostanie wysłany (kliknięcie "=")
-
-$result = ''; // Domyślnie wynik jest pusty
-
-// Sprawdzamy, czy formularz został wysłany i czy zawiera pole 'expression'
+$result = '';
 if (isset($_POST['expression'])) {
     $expression = $_POST['expression'];
-
-    // --- UWAGA DOTYCZĄCA BEZPIECZEŃSTWA ---
-    // Funkcja eval() jest bardzo niebezpieczna, ponieważ może wykonać dowolny kod PHP.
-    // W prawdziwej aplikacji NIGDY nie należy jej używać z danymi od użytkownika bez solidnej walidacji.
-    // Tutaj, dla prostoty, usuwamy wszystkie znaki, które nie są cyframi lub podstawowymi operatorami.
     $sanitized_expression = preg_replace('/[^0-9\+\-\*\/\.\(\)]/', '', $expression);
-
-    // Sprawdzamy, czy po czyszczeniu cokolwiek zostało
     if ($sanitized_expression) {
-        // Używamy @, aby stłumić błędy (np. dzielenie przez zero) i obsłużyć je poniżej
-        $result = @eval('return ' . $sanitized_expression . ';');
-
+        // Suppress errors for division by zero etc.
+        error_reporting(0);
+        $result = eval('return ' . $sanitized_expression . ';');
+        error_reporting(E_ALL);
         if ($result === false) {
-            $result = 'Błąd'; // Jeśli wystąpił błąd w obliczeniach
+            $result = 'Błąd';
         }
     } else {
-        $result = 'Błędne wyrażenie';
+        $result = '0';
     }
 }
 ?>
@@ -32,13 +21,10 @@ if (isset($_POST['expression'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator PHP</title>
+    <title>Projekt Anna Błaszczyk-Urycz</title>
     <style>
-        /* --- SEKCJA CSS --- */
-        /* Stylizacja, aby kalkulator wyglądał jak ten z iPhone'a */
-        
         body {
-            background-color: #000;
+            background-color: #dcdcdc;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -47,44 +33,56 @@ if (isset($_POST['expression'])) {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        .calculator {
-            width: 320px;
-            padding: 20px;
-            border-radius: 40px;
+        .calculator-container {
             background-color: #000;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 50px;
+            padding: 25px;
+            width: 90vw;
+            max-width: 420px;
+            height: 85vh;
+            max-height: 850px;
+            display: flex;
+            flex-direction: column;
         }
 
-        #display-form {
+        .calculator {
             width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #display-form {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
         }
         
         #display {
             width: 100%;
-            height: 80px;
             background-color: #000;
             border: none;
             color: #fff;
             text-align: right;
-            font-size: 64px;
-            padding: 0 20px;
+            font-size: clamp(48px, 12vh, 96px);
+            padding: 0 10px;
             box-sizing: border-box;
-            margin-bottom: 20px;
             font-weight: 200;
+            flex-grow: 1;
+            margin-bottom: 20px;
         }
 
         .buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
+            gap: 15px;
         }
 
         button {
-            width: 65px;
-            height: 65px;
+            aspect-ratio: 1 / 1;
             border-radius: 50%;
             border: none;
-            font-size: 28px;
+            font-size: clamp(24px, 5vw, 42px);
             cursor: pointer;
             transition: background-color 0.2s;
             display: flex;
@@ -109,90 +107,79 @@ if (isset($_POST['expression'])) {
         .btn-operator {
             background-color: #f1a33c;
             color: #fff;
-            font-size: 36px;
         }
 
         .btn-zero {
             grid-column: span 2;
-            width: 140px;
-            border-radius: 35px;
+            aspect-ratio: auto;
+            border-radius: 50px;
             justify-content: flex-start;
-            padding-left: 25px;
+            padding-left: 15%;
         }
     </style>
 </head>
 <body>
     
-    <div class="calculator">
-        <!-- Formularz wysyła wyrażenie do PHP do obliczenia -->
-        <form id="display-form" method="post" action="">
-            <!-- Wyświetlacz, który jest jednocześnie polem tekstowym formularza -->
-            <!-- PHP wstawia tutaj wynik obliczeń po odświeżeniu strony -->
-            <input type="text" id="display" name="expression" value="<?php echo htmlspecialchars($result); ?>" readonly>
-        
-            <div class="buttons">
-                <!-- Przyciski funkcji (szare) -->
-                <button type="button" class="btn-function" onclick="clearDisplay()">AC</button>
-                <button type="button" class="btn-function" onclick="appendValue('+/-')">+/-</button> <!-- Funkcjonalność do samodzielnej implementacji w JS -->
-                <button type="button" class="btn-function" onclick="appendValue('%')">%</button> <!-- Funkcjonalność do samodzielnej implementacji w JS -->
-                
-                <!-- Przyciski operatorów (pomarańczowe) -->
-                <button type="button" class="btn-operator" onclick="appendValue('/')">÷</button>
-                
-                <!-- Przyciski cyfr (ciemnoszare) -->
-                <button type="button" class="btn-number" onclick="appendValue('7')">7</button>
-                <button type="button" class="btn-number" onclick="appendValue('8')">8</button>
-                <button type="button" class="btn-number" onclick="appendValue('9')">9</button>
-                <button type="button" class="btn-operator" onclick="appendValue('*')">×</button>
-                
-                <button type="button" class="btn-number" onclick="appendValue('4')">4</button>
-                <button type="button" class="btn-number" onclick="appendValue('5')">5</button>
-                <button type="button" class="btn-number" onclick="appendValue('6')">6</button>
-                <button type="button" class="btn-operator" onclick="appendValue('-')">−</button>
+    <div class="calculator-container">
+        <div class="calculator">
+            <form id="display-form" method="post" action="">
+                <input type="text" id="display" name="expression" value="<?php echo htmlspecialchars($result ?: '0'); ?>" readonly>
+            
+                <div class="buttons">
+                    <button type="button" class="btn-function" onclick="clearDisplay()"><?= ($result !== '' && $result !== '0') ? 'C' : 'AC' ?></button>
+                    <button type="button" class="btn-function" onclick="negate()">+/-</button>
+                    <button type="button" class="btn-function" onclick="percentage()">%</button>
+                    <button type="button" class="btn-operator" onclick="appendValue('/')">÷</button>
+                    
+                    <button type="button" class="btn-number" onclick="appendValue('7')">7</button>
+                    <button type="button" class="btn-number" onclick="appendValue('8')">8</button>
+                    <button type="button" class="btn-number" onclick="appendValue('9')">9</button>
+                    <button type="button" class="btn-operator" onclick="appendValue('*')">×</button>
+                    
+                    <button type="button" class="btn-number" onclick="appendValue('4')">4</button>
+                    <button type="button" class="btn-number" onclick="appendValue('5')">5</button>
+                    <button type="button" class="btn-number" onclick="appendValue('6')">6</button>
+                    <button type="button" class="btn-operator" onclick="appendValue('-')">−</button>
 
-                <button type="button" class="btn-number" onclick="appendValue('1')">1</button>
-                <button type="button" class="btn-number" onclick="appendValue('2')">2</button>
-                <button type="button" class="btn-number" onclick="appendValue('3')">3</button>
-                <button type="button" class="btn-operator" onclick="appendValue('+')">+</button>
+                    <button type="button" class="btn-number" onclick="appendValue('1')">1</button>
+                    <button type="button" class="btn-number" onclick="appendValue('2')">2</button>
+                    <button type="button" class="btn-number" onclick="appendValue('3')">3</button>
+                    <button type="button" class="btn-operator" onclick="appendValue('+')">+</button>
 
-                <button type="button" class="btn-number btn-zero" onclick="appendValue('0')">0</button>
-                <button type="button" class="btn-number" onclick="appendValue('.')">,</button>
+                    <button type="button" class="btn-number btn-zero" onclick="appendValue('0')">0</button>
+                    <button type="button" class="btn-number" onclick="appendValue('.')">,</button>
 
-                <!-- Przycisk "=" jest jedynym, który wysyła formularz do PHP -->
-                <button type="submit" class="btn-operator">=</button>
-            </div>
-        </form>
+                    <button type="submit" class="btn-operator">=</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
-        // --- SEKCJA JAVASCRIPT ---
-        // Ta część kodu działa w przeglądarce użytkownika
-
         const display = document.getElementById('display');
 
-        // Funkcja do dodawania wartości do wyświetlacza
         function appendValue(value) {
-            // Jeśli na wyświetlaczu jest wynik "Błąd", czyścimy go przed dodaniem nowej wartości
-            if (display.value === 'Błąd' || display.value === 'Błędne wyrażenie') {
+            if (display.value === '0' || display.value === 'Błąd') {
                 display.value = '';
             }
-
-            // Obsługa znaków specjalnych
-            if (value === '×') value = '*';
-            if (value === '÷') value = '/';
-            if (value === ',') value = '.';
-            
             display.value += value;
         }
 
-        // Funkcja do czyszczenia wyświetlacza
         function clearDisplay() {
-            display.value = '';
+            display.value = '0';
+        }
+        
+        function negate() {
+             if (display.value !== '0' && display.value !== '') {
+                display.value = parseFloat(display.value) * -1;
+            }
         }
 
-        // Uwaga: Funkcje dla "+/-" i "%" nie są zaimplementowane,
-        // aby zachować prostotę kodu. Wymagałyby one bardziej zaawansowanej logiki w JavaScript.
-
+        function percentage() {
+            if (display.value !== '0' && display.value !== '') {
+                display.value = parseFloat(display.value) / 100;
+            }
+        }
     </script>
 </body>
 </html>
